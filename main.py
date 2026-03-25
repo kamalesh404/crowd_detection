@@ -404,7 +404,12 @@ class CrowdSafetyPipeline:
                 cv2.destroyAllWindows()
             # Generate final report
             timeline = self.logger.generate_incident_timeline()
-            print("\n" + timeline)
+            try:
+                print("\n" + timeline)
+            except UnicodeEncodeError:
+                enc = sys.stdout.encoding or "utf-8"
+                safe = ("\n" + timeline).encode(enc, errors="replace").decode(enc, errors="replace")
+                print(safe)
             self.logger.close()
             print("[Pipeline] Shutdown complete.")
 

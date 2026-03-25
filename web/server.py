@@ -198,12 +198,12 @@ async def api_switch_camera(cam_id: str):
 @app.get("/")
 def index(request: Request):
     """Main dashboard interface."""
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    return templates.TemplateResponse(request, "dashboard.html", {"request": request})
 
 @app.get("/mobile")
 def mobile_index(request: Request):
     """Mobile Command Center interface."""
-    return templates.TemplateResponse("mobile.html", {"request": request})
+    return templates.TemplateResponse(request, "mobile.html", {"request": request})
 
 
 @app.on_event("startup")

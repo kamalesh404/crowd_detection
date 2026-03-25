@@ -62,9 +62,12 @@ class KalmanBoxTracker:
         return np.array([[x], [y], [s], [r]], dtype=np.float32)
 
     def _z_to_bbox(self, z, score=None):
-        w = np.sqrt(abs(z[2] * z[3])); h = z[2] / w if w else 0
-        x1 = int(z[0] - w / 2); y1 = int(z[1] - h / 2)
-        x2 = int(z[0] + w / 2); y2 = int(z[1] + h / 2)
+        # Ensure we are working with a flat numeric vector (KalmanFilter uses column vectors)
+        z = np.asarray(z, dtype=np.float32).reshape(-1)
+        w = np.sqrt(abs(float(z[2] * z[3])))
+        h = float(z[2] / w) if w else 0.0
+        x1 = int(float(z[0]) - w / 2); y1 = int(float(z[1]) - h / 2)
+        x2 = int(float(z[0]) + w / 2); y2 = int(float(z[1]) + h / 2)
         return x1, y1, x2, y2
 
     def predict(self):

@@ -182,7 +182,14 @@ class HUDRenderer:
             for i in range(1, len(traj)):
                 alpha = i / len(traj)
                 c_ = tuple(int(x * alpha) for x in color)
-                cv2.line(frame, traj[i-1], traj[i], c_, 1)
+                p1 = traj[i - 1]
+                p2 = traj[i]
+                try:
+                    p1 = (int(p1[0]), int(p1[1]))
+                    p2 = (int(p2[0]), int(p2[1]))
+                except Exception:
+                    continue
+                cv2.line(frame, p1, p2, c_, 1)
         return frame
 
     # ── Lost child highlight ──────────────────────────────────────────────
