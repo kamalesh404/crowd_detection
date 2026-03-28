@@ -4,7 +4,7 @@
 
 ```bash
 cd "/Users/apple/Desktop/crowd detectiom"
-./run.sh                    # Uses real webcam by default
+C                    # Uses real webcam by default
 # OR
 ./run.sh --sim             # Simulation mode (no camera needed)
 ```

@@ -123,6 +123,21 @@ class MultiTracker:
         # Don't reset KalmanBoxTracker.count - use instance IDs instead
         self._id_offset = KalmanBoxTracker.count
 
+    @staticmethod
+    def _normalize_bbox(state) -> Optional[Tuple[int, int, int, int]]:
+        x1, y1, x2, y2 = map(int, state)
+        if x2 < x1:
+            x1, x2 = x2, x1
+        if y2 < y1:
+            y1, y2 = y2, y1
+        x1 = max(0, x1)
+        y1 = max(0, y1)
+        x2 = max(0, x2)
+        y2 = max(0, y2)
+        if (x2 - x1) < 2 or (y2 - y1) < 2:
+            return None
+        return (x1, y1, x2, y2)
+
     def update(self, detections: List[Detection]) -> List[Detection]:
         """Update tracker with new detections. Returns detections annotated with track IDs."""
         self.frame_count += 1
@@ -159,6 +174,9 @@ class MultiTracker:
         for trk in self.trackers:
             if trk.hit_streak >= TRACKER_MIN_HITS or self.frame_count <= TRACKER_MIN_HITS:
                 state = trk.get_state()
+                bbox = self._normalize_bbox(state)
+                if bbox is None:
+                    continue
                 # Find matching detection for confidence
                 conf = 0.9
                 for d in detections:
@@ -166,19 +184,19 @@ class MultiTracker:
                         conf = d.confidence
                         break
                 det = Detection(
-                    x1=max(0, state[0]),
-                    y1=max(0, state[1]),
-                    x2=max(0, state[2]),
-                    y2=max(0, state[3]),
+                    x1=bbox[0],
+                    y1=bbox[1],
+                    x2=bbox[2],
+                    y2=bbox[3],
                     confidence=conf,
                     track_id=trk.id
                 )
                 result.append(det)
                 self.active_tracks[trk.id] = {
-                    "bbox": state,
+                    "bbox": bbox,
                     "center": trk.center,
                     "trajectory": list(trk.history),
-                    "bbox_height": state[3] - state[1]
+                    "bbox_height": bbox[3] - bbox[1]
                 }
 
         # Prune active_tracks for deleted trackers

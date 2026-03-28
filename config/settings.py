@@ -5,6 +5,52 @@ All thresholds, paths, and system parameters are defined here.
 
 import os
 
+
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_int_list(name: str, default):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    value = value.strip()
+    if value == "":
+        return []
+    out = []
+    for part in value.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            out.append(int(part))
+        except ValueError:
+            return default
+    return out
+
 # ──────────────────────────────────────────────
 # BASE PATHS
 # ──────────────────────────────────────────────
@@ -24,20 +70,26 @@ TARGET_FPS = 30
 FRAME_WIDTH = 1280
 FRAME_HEIGHT = 720
 DISPLAY_SCALE = 1.0
+FLIP_CAMERA_FEED = _env_bool("FLIP_CAMERA_FEED", True)
 
 # ──────────────────────────────────────────────
 # AI MODEL
 # ──────────────────────────────────────────────
 YOLO_MODEL = "yolov8n.pt"          # yolov8n / yolov8s / yolov8m / yolov8l
-YOLO_CONFIDENCE = 0.40
-YOLO_IOU_THRESHOLD = 0.45
-YOLO_CLASSES = [0]                  # 0 = person
+YOLO_CONFIDENCE = _env_float("YOLO_CONFIDENCE", 0.25)
+YOLO_IOU_THRESHOLD = _env_float("YOLO_IOU_THRESHOLD", 0.45)
+YOLO_CLASSES = _env_int_list("YOLO_CLASSES", [0])  # [] disables class filtering
+YOLO_DEVICE = os.getenv("YOLO_DEVICE", "auto")  # auto / cuda / cpu / cuda:0
+YOLO_IMGSZ = _env_int("YOLO_IMGSZ", 640)
+YOLO_FRAME_STRIDE = max(1, _env_int("YOLO_FRAME_STRIDE", 1))
+YOLO_USE_HALF = _env_bool("YOLO_USE_HALF", True)
+PRIVACY_BLUR_FACES = _env_bool("PRIVACY_BLUR_FACES", False)
 
 # ──────────────────────────────────────────────
 # TRACKING
 # ──────────────────────────────────────────────
 TRACKER_MAX_AGE = 30           # frames before a lost track is deleted
-TRACKER_MIN_HITS = 3           # frames before a new track is confirmed
+TRACKER_MIN_HITS = max(1, _env_int("TRACKER_MIN_HITS", 1))  # frames to confirm track
 TRACKER_IOU_THRESHOLD = 0.3
 TRAJECTORY_HISTORY = 60        # number of past positions to store
 

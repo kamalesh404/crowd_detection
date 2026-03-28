@@ -9,12 +9,13 @@ import threading
 import time
 import math
 import queue
+import os
 from collections import deque
 from typing import Optional
 
 import numpy as np
 
-import sys, os
+import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -46,6 +47,8 @@ class AcousticDetector:
         self._thread: Optional[threading.Thread] = None
         self._simulated = False
         self._sim_t = 0.0
+        self._read_failures = 0
+        self._max_read_failures = 25
 
     def start(self):
         """Start the audio capture thread."""
@@ -53,15 +56,19 @@ class AcousticDetector:
         try:
             import pyaudio
             self._pyaudio = pyaudio.PyAudio()
+            device_index = os.getenv("CROWDSAFE_AUDIO_DEVICE")
+            device_index = int(device_index) if device_index is not None else None
             self._stream = self._pyaudio.open(
                 format=pyaudio.paInt16,
                 channels=1,
                 rate=SAMPLE_RATE,
                 input=True,
-                frames_per_buffer=CHUNK_SIZE
+                frames_per_buffer=CHUNK_SIZE,
+                input_device_index=device_index
             )
             print("[Acoustic] Microphone capture active.")
             self._simulated = False
+            self._read_failures = 0
         except Exception as e:
             print(f"[Acoustic] PyAudio unavailable ({e}). Running in simulated mode.")
             self._simulated = True
@@ -96,7 +103,12 @@ class AcousticDetector:
             data = self._stream.read(CHUNK_SIZE, exception_on_overflow=False)
             samples = np.frombuffer(data, dtype=np.int16).astype(np.float32)
             self._process(samples)
+            self._read_failures = 0
         except Exception:
+            self._read_failures += 1
+            if self._read_failures >= self._max_read_failures:
+                print("[Acoustic] Microphone read failed repeatedly. Falling back to simulated mode.")
+                self._simulated = True
             time.sleep(0.1)
 
     def _sim_step(self):
