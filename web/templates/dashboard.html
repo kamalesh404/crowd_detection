@@ -151,7 +151,17 @@ const featureGroups=[
 ["Deployment, Infrastructure, and Reliability",[["Multi Camera Processing","Live","Per-camera switching and independent feed operation controls."],["Drone Feed Support","Live","Dedicated drone feed channel available in camera selector."],["Edge AI Offline Mode","Live","Full operation without network dependency for critical safety use."],["Performance and Health Monitor","Live","Uptime, connection state, and live processing telemetry."],["Adaptive Frame Load Strategy","Partial","UI hooks prepared for frame skip and load balancing states."],["Privacy and Role Security","Partial","Encryption and role access states surfaced for operations."],["Mobile Command Center","Live","Companion mobile dashboard served from dedicated route."]]]
 ];
 const id=(x)=>document.getElementById(x);
-const lvl=(x)=>{x=String(x||"SAFE").toUpperCase();return["SAFE","WARNING","DANGER","CRITICAL"].includes(x)?x:"SAFE"};
+const lvl=(x)=>{x=String(x||"SAFE").toUpperCase();if(x==="OPTIMAL")x="SAFE";return["SAFE","WARNING","DANGER","CRITICAL"].includes(x)?x:"SAFE"};
+function levelFromRisk(r){r=Number(r||0);if(r>=75)return"CRITICAL";if(r>=55)return"DANGER";if(r>=30)return"WARNING";return"SAFE";}
+function normalizeLevel(raw,risk){
+  const fromRisk=levelFromRisk(risk);
+  if(raw===undefined||raw===null||raw==="")return fromRisk;
+  const incoming=lvl(raw);
+  if(risk<30)return"SAFE";
+  if(risk<55&&(incoming==="DANGER"||incoming==="CRITICAL"))return fromRisk;
+  if(risk<75&&incoming==="CRITICAL")return fromRisk;
+  return incoming;
+}
 const cls=(x)=>({SAFE:"safe",WARNING:"warning",DANGER:"danger",CRITICAL:"critical"})[lvl(x)];
 const color=(v)=>v>=75?"#ee4d4d":v>=55?"#f0852e":v>=30?"#f7c24f":"#21d38b";
 const status=(v)=>v>=75?"CRITICAL":v>=55?"DANGER":v>=30?"WARNING":"OPTIMAL";
@@ -165,8 +175,9 @@ function renderFeatures(){id("features").innerHTML=featureGroups.map(g=>`<sectio
 function renderExplain(ex){if(!ex||typeof ex!=="object"){id("exp_sum").textContent="Waiting for explainability output";id("exp").innerHTML="";return;}id("exp_sum").textContent=ex.summary||"No summary available";const ent=Object.entries(ex.contributions||{}).filter(e=>Number(e[1])>1).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,6);id("exp").innerHTML=ent.length?ent.map(e=>`<span class="chip">${String(e[0]).replaceAll("_"," ")}: ${Number(e[1]).toFixed(0)}%</span>`).join(""):'<span class="tiny">No significant contributors yet.</span>';}
 function renderAlerts(feed){const rows=Array.isArray(feed)?feed:[];id("alertn").textContent=`${rows.length} events`;id("alerts").innerHTML=rows.length?rows.map(a=>`<article class="arow ${cls(a.level)}"><div class="ameta"><span>${lvl(a.level)}</span><span>${a.time_str||"--:--:--"}</span></div><div class="amsg">${a.message||"No message"}</div></article>`).join(""):'<div class="tiny">No alert events yet. Monitoring all channels.</div>';id("etable").innerHTML=rows.map(a=>`<tr><td>${a.time_str||"--:--:--"}</td><td>${lvl(a.level)}</td><td>${a.message||"No message"}</td></tr>`).join("");}
 function applyData(p){const m=p.metrics||{},risk=Number(p.risk_score||0),count=Number(m.count||0),density=Number(m.density||0)*100,occ=Number(m.occupancy_pct||0)*100,speed=Number(m.speed_multiplier||1),entropy=Number(m.direction_entropy||1),ac=Number(m.acoustic_db||0),an=Number(m.anomaly_score||0),trend=String(m.trend||"stable");
+const level=normalizeLevel(p.alert_level,risk);
 id("count").textContent=count.toFixed(0);id("occ").textContent=`${occ.toFixed(1)}%`;id("density").textContent=`${density.toFixed(1)}%`;id("flow").textContent=entropy.toFixed(2);id("acoustic").textContent=`${ac.toFixed(0)} dB`;id("entropy").textContent=entropy.toFixed(2);id("anomaly").textContent=`${an.toFixed(0)}%`;id("speedx").textContent=`${speed.toFixed(2)}x`;
-id("risk").textContent=`${risk.toFixed(1)}%`;id("trend").textContent=trend.charAt(0).toUpperCase()+trend.slice(1);id("status").textContent=`System Status: ${status(risk)}`;id("status").style.color=color(risk);id("alerttag").textContent=lvl(p.alert_level);id("alerttag").style.color=color(risk);id("alerttag").style.borderColor=color(risk);
+id("risk").textContent=`${risk.toFixed(1)}%`;id("trend").textContent=trend.charAt(0).toUpperCase()+trend.slice(1);id("status").textContent=`System Status: ${status(risk)}`;id("status").style.color=color(risk);id("alerttag").textContent=level;id("alerttag").style.color=color(risk);id("alerttag").style.borderColor=color(risk);
 bar("bd",density,"bdv",`${density.toFixed(1)}%`);bar("bo",occ,"bov",`${occ.toFixed(1)}%`);bar("bs",Math.min(100,Math.max(0,(speed-1)*50)),"bsv",`${speed.toFixed(2)}x`);const comp=m.compressed?90:Math.max(0,Math.min(100,100-Number(m.avg_dist||100)));bar("bc",comp,"bcv",m.compressed?"High":"Low");
 const pr=p.predictions||{},p30=Number(pr[30]??pr["30"]??0),p60=Number(pr[60]??pr["60"]??0),p120=Number(pr[120]??pr["120"]??0);bar("f30",p30,"f30v",`${p30.toFixed(0)}%`);bar("f60",p60,"f60v",`${p60.toFixed(0)}%`);bar("f120",p120,"f120v",`${p120.toFixed(0)}%`);
 renderAlerts(p.alert_feed||[]);renderExplain(m.explanation||{});renderZones(m.zone_grid||[]);renderModules(m);
