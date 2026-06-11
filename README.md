@@ -194,6 +194,9 @@ This project is licensed under the **MIT License** — free to use, modify, and 
 
 
 ---
+<br>
 <div align="center">
-  <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fkamalesh4044%2Fcrowd_detection&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=views&edge_flat=false" alt="Views"/>
+  <a href="https://github.com/kamalesh4044/crowd_detection">
+    <img src="https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fgithub.com%2Fkamalesh4044%2Fcrowd_detection&label=✨%20PROJECT%20VIEWS&labelColor=%230d1117&countColor=%2300ff88&style=for-the-badge" alt="Views"/>
+  </a>
 </div>
